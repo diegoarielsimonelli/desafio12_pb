@@ -25,16 +25,11 @@ app.use(express.urlencoded({extended: true}))
 /* CREA RELACIÓN A CARPETA 'PUBLIC' */
 app.use( express.static('public') );
 
-/* HABILITA EL USO DE hbs */
-app.set("view engine", "handlebars");
+/* HABILITA EL USO DE '.HBS' */
+
 app.set("views", "./views");
-app.engine(
-    "handlebars",
-    handlebars.engine({
-        extname: ".hbs",
-        defaultLayout: 'index.hbs',
-    })
-);
+app.engine('hbs', handlebars.engine({defaultLayout: 'index', extname: '.hbs'}));
+app.set('view engine', 'hbs');
 
 
 /* CREA EL WEBSOCKET */
