@@ -1,53 +1,27 @@
-const fs = require('fs')
+const knex = require('knex');
+
 class Contenedor {
 
-    constructor (nombreArchivo){
-        this.nombreArchivo = nombreArchivo
+    constructor (config, table){
+        this.table = table
+        this.conexion = knex(config)
     }
 
-        async save(newProduct){
-            try{
-
-                //1. Lee el archivo
-                const contenido = await fs.promises.readFile(`./${this.nombreArchivo}`,'utf-8')
-                let productos = []
-
-                //2. Crea el ID
-
-                //2.1. Si no hay datos, crea id : 1
-                if (contenido === ''){
-                    newProduct.id = 1;
-                    productos.push(newProduct);
-
-                } else { //2.2 Si hay un ID, suma al anterior
-                    const listaDeProductos = JSON.parse(contenido);
-                    newProduct.id = listaDeProductos[listaDeProductos.length -1].id + 1;
-                    listaDeProductos.push(newProduct);
-                    productos = listaDeProductos
-                }
-
-                // 3. Guarda el producto en el JSON
-                const productoString = JSON.stringify(productos, null, 2)
-                await fs.promises.writeFile(`./${this.nombreArchivo}`, productoString);
-                console.log('Se guardó de forma correcta el producto')
-
-                // 4. Regresa ID
-                return newProduct.id
-
-            } catch(error) {
-                console.error('Error: ', error)
-            }
-        }
+    async save(newProduct){
+        try{
+            const [id] = await this.conexion(this.table).insert(newProduct)
+            return id
+        } catch (error) {console.error(error); throw error;}
+    }   
 
     async getById(number){
         try{
-            const contenido = await fs.promises.readFile(`./${this.nombreArchivo}`,'utf-8');
-            const listaDeProductos = JSON.parse(contenido)
-            const resultadoId = listaDeProductos.find(numero => numero.id === number)
-            if (resultadoId === undefined){
+            const contenido = this.conexion.from(this.table)
+            .select('*').where('id', '=', number)
+            if (contenido.lenght === 0){
                 return null
             } else{
-                return resultadoId
+                return contenido
             }
         } catch (error){
             console.error('Error de lectura',error)
@@ -57,81 +31,44 @@ class Contenedor {
 
     async getAll(){
         try {
-            const contenido = await fs.promises.readFile(`./${this.nombreArchivo}`,'utf-8');
-            const listaDeProductos = JSON.parse(contenido);
-            //console.log('Todos los productos disponibles: ',listaDeProductos)
-            return listaDeProductos;
-        }
-        catch (error){
-            console.error('Error de lectura',error)
-        }
+            const listado = await this.conexion.from(this.table)
+            .select('*')
+            return listado;
+        } catch (error) {console.error(error); throw error;}
     }
 
-    async deleteById(numero){
+    async deleteById(id){
         try{
-            const contenido = await fs.promises.readFile(`./${this.nombreArchivo}`,'utf-8');
-            const listaDeProductos = JSON.parse(contenido)
-
-            const resultadoId = listaDeProductos.find(number => number.id === numero)
-            if (!resultadoId){
+            const productoAEliminar = await this.conexion.from(this.table).where('id', '=', id).del()
+            if (!productoAEliminar){
                 return null
             } else{
-                const index = listaDeProductos.indexOf(resultadoId);
-                listaDeProductos.splice(index, 1);
-                const listaNew = JSON.stringify(listaDeProductos)
-    
-                await fs.promises.writeFile(`./${this.nombreArchivo}`,listaNew);
-                console.log('El producto seleccionado se eliminó de forma correcta')
+                productoAEliminar
             }
-
-        } catch (error){
-            console.error('Error de lectura',error)
-        }
+        } catch (error) {console.error(error); throw error;}
     }
-
-
 
     async deleteAll(){
         try {
-            const contenido = await fs.promises.writeFile(`./${this.nombreArchivo}`,'');
-            console.log('Se eliminaron todos los productos de forma correcta')
+            const eliminarTodo = this.conexion.from(this.table).del()
+            console.log('Se eliminaron todos los productos')
+            return eliminarTodo
         }
-        catch (error){
-            console.error('Error de lectura',error)
-        }
+        catch (error){console.error('Error de lectura',error)}
     }
 
     async update(id, producto){
         try {
-            const list = await this.getAll();
-            const productoSaved = list.find((item) => item.id === parseInt(id))
-            const indexProductoSaved = list.findIndex((item) => item.id === parseInt(id))
+            const productoUpdated = this.conexion.from(this.table).where('id', id).update({producto})
     
-            if (!productoSaved){
+            if (!productoUpdated){
                 console.log(`Error con el Id: ${id} no fue encontrado`)
                 return null
+            } else {
+                console.log('Producto modificado de forma satisfactoria')
             }
-    
-            const productoUpdate = {
-                ...productoSaved, // SE COPIAN TODOS LOS ATRIBUTOS DE PRODUCTOSAVED EN PRODUCTOUPDATE
-                ...producto // SE COPIAN Y PISAN TODOS LOS ATRIBUTOS DE PRODUCTO EN PRODUCTOUPDATE. ESTO PASA PORQUE NO PUEDE HABER DOS DATOS IGUALES EN JSON
-            };
-            // SE PONE EL NUEVO ELEMENTO EN LA LISTA
-            list[indexProductoSaved] = productoUpdate
-    
-            console.log(list[indexProductoSaved])
-    
-            // SE GUARDA LA LISTA
-            const elementString = JSON.stringify(list, null, 2)
-            await fs.promises.writeFile(`./${this.nombreArchivo}`, elementString);
-    
-            return productoUpdate
-        }
-        catch (error){
-            console.error('Error de lectura',error)
-        }
+        } catch (error){console.error('Error de lectura',error)}
     }
 }
-
 
 module.exports = Contenedor;

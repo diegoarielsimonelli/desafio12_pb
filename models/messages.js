@@ -1,24 +1,19 @@
-const fs = require('fs')
-class Mensajes{
-        constructor (nombreArchivo){
-        this.nombreArchivo = nombreArchivo
-    }
+const Contenedor = require('./contenedor');
+const { optionsSQLite } = require( '../options/databases' );
 
-    async saveMessages(newMessage){
-        const contenido = await fs.promises.readFile(`./${this.nombreArchivo}`,'utf-8')
-        let mensajes = []
-        const listaDeMensajes = JSON.parse(contenido);
-        listaDeMensajes.push(newMessage);
-        mensajes = listaDeMensajes
-        const mensajeString = JSON.stringify(mensajes, null, 2)
-        await fs.promises.writeFile(`./${this.nombreArchivo}`, mensajeString);
-    }
+const messageContenedor = new Contenedor(optionsSQLite, 'tabla_mensaje')
 
-    async getMessagess (){
-        const contenido = await fs.promises.readFile(`./${this.nombreArchivo}`,'utf-8');
-        const listaDeMensajes = JSON.parse(contenido);
-        return listaDeMensajes
-    };
+const saveMessages = async (newMessage) => {
+    const mensajeNuevo = await messageContenedor.save(newMessage)
+    return mensajeNuevo
 }
 
-module.exports = Mensajes
+const getMessages = async () => {
+    const listadoMensajes = await messageContenedor.getAll()
+    return listadoMensajes
+};
+
+module.exports = {
+    saveMessages,
+    getMessages
+}

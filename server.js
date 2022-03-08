@@ -1,18 +1,20 @@
 const express = require('express');
 const handlebars = require('express-handlebars')
 
-
+const { connected } = require( 'process' );
+const { optionsMYSQL } = require( './options/databases' );
+const { getMessages, saveMessages} = require('./models/messages')
 const { Server : SocketServer } = require('socket.io');
 const { Server : HttpServer} = require('http');
 
 
+
 /* CARGA DE PRODUCTOS */
 const Contenedor = require('./models/contenedor');
-const productosContenedor = new Contenedor('/data/productos.json')
+const productosContenedor = new Contenedor(optionsMYSQL,'products')
 
-/* CARGA DE CHAT */
-const Mensajes = require( './models/messages.js' );
-const mensajes = new Mensajes('/data/messages.json')
+
+
 
 const app = express();
 const httpServer = new HttpServer(app);
